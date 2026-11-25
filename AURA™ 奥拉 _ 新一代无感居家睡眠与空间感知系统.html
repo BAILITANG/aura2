@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AURA™ 奥拉 | 新一代无感居家睡眠与空间感知系统</title>
+<style>
+  :root {
+    --bg-color: #f8fafc;
+    --text-main: #0f172a;
+    --text-muted: #475569;
+    --card-bg: rgba(255, 255, 255, 0.88);
+    --card-border: rgba(15, 23, 42, 0.08);
+    --accent: #3b82f6;
+    --accent-glow: rgba(59, 130, 246, 0.25);
+    --radius: 20px;
+    --corruption: 0;
+    --font-current: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: var(--font-current);
+    overflow-x: hidden;
+    transition: background-color 0.15s linear, color 0.15s linear;
+    line-height: 1.6;
+  }
+
+  body.corrupted-font {
+    font-family: "Songti SC", "SimSun", "STSong", serif;
+    letter-spacing: 0.04em;
+  }
+
+  /* 全局噪点、暗角与血丝覆盖层 */
+  #fx-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9000;
+  }
+
+  /* 潜意识闪帧文字 */
+  #subliminal-flash {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #050000;
+    color: #dc2626;
+    font-family: "Songti SC", "SimSun", serif;
+    font-size: clamp(2rem, 6vw, 5rem);
+    font-weight: 900;
+    letter-spacing: 0.25em;
+    z-index: 9500;
+    pointer-events: none;
+    opacity: 0;
+    text-shadow: 4px 0 #ff0000, -4px 0 #00ffff;
+  }
+
+  /* 顶部导航栏 */
+  header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 5%;
+    z-index: 8000;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    background: rgba(248, 250, 252, 0.78);
+    border-bottom: 1px solid var(--card-border);
+    transition: background 0.3s, border-color 0.3s;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+  }
+
+  .logo-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    font-size: 0.92rem;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 768px) {
+    .nav-links { display: none; }
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .btn-audio {
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    color: var(--text-main);
+    font-size: 0.82rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+
+  .btn-audio:hover {
+    border-color: var(--accent);
+  }
+
+  .btn-primary {
+    padding: 9px 20px;
+    border-radius: 999px;
+    border: none;
+    background: var(--accent);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.88rem;
+    cursor: pointer;
+    box-shadow: 0 4px 16px var(--accent-glow);
+    transition: transform 0.2s, background 0.3s, border-radius 0.3s;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+  }
+
+  /* 通用容器 */
+  .section {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 110px 24px;
+    position: relative;
+  }
+
+  /* 第一阶段：Hero 营销首屏 */
+  .hero {
+    min-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding-top: 130px;
+    position: relative;
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 620px;
+    height: 620px;
+    background: radial-gradient(circle, rgba(59,130,246,0.14) 0%, rgba(168,85,247,0.06) 45%, transparent 70%);
+    top: 8%;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: 50%;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.08);
+    color: #2563eb;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+    border: 1px solid rgba(59, 130, 246, 0.18);
+  }
+
+  .hero h1 {
+    font-size: clamp(2.4rem, 5vw, 4.2rem);
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    max-width: 860px;
+    margin-bottom: 22px;
+    font-weight: 800;
+  }
+
+  .hero p.subtitle {
+    font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+    color: var(--text-muted);
+    max-width: 640px;
+    margin-bottom: 38px;
+  }
+
+  .hero-cta-group {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 64px;
+  }
+
+  .btn-large {
+    padding: 15px 32px;
+    font-size: 1rem;
+  }
+
+  .btn-outline {
+    padding: 15px 28px;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, 0.15);
+    background: rgba(255,255,255,0.7);
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-outline:hover {
+    background: #ffffff;
+    border-color: var(--accent);
+  }
+
+  /* 模拟智能硬件视觉预览卡 */
+  .device-showcase {
+    width: 100%;
+    max-width: 880px;
+    background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 28px;
+    padding: 40px;
+    box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.07);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    text-align: left;
+  }
+
+  @media (max-width: 768px) {
+    .device-showcase { grid-template-columns: 1fr; }
+  }
+
+  .metric-box {
+    background: #ffffff;
+    padding: 22px;
+    border-radius: 18px;
+    border: 1px solid rgba(15, 23, 42, 0.05);
+  }
+
+  .metric-label {
+    font-size: 0.82rem;
+    color: #64748b;
+    margin-bottom: 6px;
+  }
+
+  .metric-val {
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .metric-sub {
+    font-size: 0.8rem;
+    color: #10b981;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  /* 信任背书栏 */
+  .trust-strip {
+    text-align: center;
+    padding: 36px 20px 80px;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .trust-logos {
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #cbd5e1;
+  }
+
+  /* 第二阶段：核心功能（逐渐异化） */
+  .section-header {
+    text-align: center;
+    max-width: 680px;
+    margin: 0 auto 64px;
+  }
+
+  .section-header h2 {
+    font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+    margin-bottom: 14px;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
+  }
+
+  @media (max-width: 768px) {
+    .features-grid { grid-template-columns: 1fr; }
+  }
+
+  .feature-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 34px;
+    transition: transform 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+  }
+
+  .feature-card h3 {
+    font-size: 1.25rem;
+    margin-bottom: 10px;
+  }
+
+  .feature-card p {
+    color: var(--text-muted);
+    font-size: 0.96rem;
+  }
+
+  /* 微违和细节：倾斜与重影文字 */
+  .uncanny-tilt {
+    transform: rotate(-0.7deg);
+  }
+
+  .uncanny-whisper {
+    display: block;
+    margin-top: 10px;
+    font-size: 0.82rem;
+    opacity: 0.72;
+    font-style: italic;
+  }
+
+  /* 用户评价区（崩坏过渡） */
+  .reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  @media (max-width: 900px) {
+    .reviews-grid { grid-template-columns: 1fr; }
+  }
+
+  .review-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .stars {
+    color: #f59e0b;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+    font-size: 0.95rem;
+  }
+
+  .reviewer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* 诡异凝视头像 */
+  .avatar-creepy {
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+  }
+
+  .creepy-eye {
+    width: 9px;
+    height: 9px;
+    background: #fff;
+    border-radius: 50%;
+    position: relative;
+  }
+
+  .creepy-pupil {
+    width: 4px;
+    height: 4px;
+    background: #dc2626;
+    border-radius: 50%;
+    position: absolute;
+    top: 2.5px;
+    left: 2.5px;
+  }
+
+  /* 第三阶段：毫米波实时雷达与异化订阅表 */
+  .telemetry-panel {
+    background: rgba(10, 12, 10, 0.92);
+    border: 1px solid rgba(220, 38, 38, 0.35);
+    border-radius: 8px;
+    padding: 36px;
+    color: #e2e8f0;
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 32px;
+    align-items: center;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+  }
+
+  @media (max-width: 820px) {
+    .telemetry-panel { grid-template-columns: 1fr; }
+  }
+
+  #radar-canvas {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-width: 380px;
+    margin: 0 auto;
+    display: block;
+    background: #050805;
+    border: 1px solid rgba(220, 38, 38, 0.3);
+  }
+
+  .telemetry-log {
+    font-family: "Courier New", monospace;
+    font-size: 0.9rem;
+    line-height: 1.8;
+  }
+
+  .log-line {
+    border-bottom: 1px dashed rgba(255,255,255,0.08);
+    padding: 6px 0;
+  }
+
+  .danger-blink {
+    color: #ef4444;
+    font-weight: bold;
+    animation: pulseFast 0.7s infinite alternate;
+  }
+
+  @keyframes pulseFast {
+    from { opacity: 1; text-shadow: 0 0 8px #ef4444; }
+    to { opacity: 0.35; text-shadow: none; }
+  }
+
+  /* 异化订阅方案 */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 40px;
+  }
+
+  @media (max-width: 860px) {
+    .pricing-grid { grid-template-columns: 1fr; }
+  }
+
+  .price-card {
+    background: rgba(16, 8, 8, 0.9);
+    border: 1px solid rgba(185, 28, 28, 0.35);
+    padding: 32px 24px;
+    color: #d1d5db;
+    position: relative;
+  }
+
+  .price-card.featured-horror {
+    border: 2px solid #dc2626;
+    box-shadow: inset 0 0 30px rgba(220, 38, 38, 0.25), 0 0 25px rgba(220, 38, 38, 0.2);
+    filter: url(#organic-warp);
+  }
+
+  .price-tag {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #f87171;
+    margin: 16px 0;
+  }
+
+  .price-list {
+    list-style: none;
+    margin: 20px 0 28px;
+    font-size: 0.92rem;
+  }
+
+  .price-list li {
+    margin-bottom: 10px;
+    padding-left: 18px;
+    position: relative;
+  }
+
+  .price-list li::before {
+    content: "†";
+    position: absolute;
+    left: 0;
+    color: #dc2626;
+  }
+
+  .glitch-text {
+    text-shadow: 2px 0 #dc2626, -2px 0 #06b6d4;
+  }
+
+  /* 第四阶段：恐怖片走廊长镜头 (Sticky 380vh) */
+  #corridor-wrapper {
+    position: relative;
+    height: 380vh;
+    width: 100%;
+    background: #020101;
+  }
+
+  #corridor-sticky {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    cursor: none;
+    background: #000;
+  }
+
+  #corridor-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .corridor-hud {
+    position: absolute;
+    bottom: 36px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    pointer-events: none;
+    z-index: 20;
+    font-family: "Songti SC", "SimSun", serif;
+    color: rgba(220, 38, 38, 0.85);
+    font-size: clamp(1rem, 2.2vw, 1.5rem);
+    letter-spacing: 0.25em;
+    text-shadow: 0 2px 12px #000;
+  }
+
+  .cam-rec {
+    position: absolute;
+    top: 86px;
+    left: 32px;
+    font-family: "Courier New", monospace;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.65);
+    pointer-events: none;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .rec-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ef4444;
+    animation: pulseFast 0.8s infinite alternate;
+  }
+
+  /* 隐藏重置提示 */
+  #reset-hint {
+    position: fixed;
+    bottom: 12px;
+    right: 14px;
+    z-index: 9600;
+    background: rgba(0,0,0,0.65);
+    color: rgba(255,255,255,0.45);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    display: none;
+  }
+  #reset-hint:hover {
+    color: #fff;
+    border-color: #ef4444;
+  }
+</style>
+</head>
+<body>
+
+<!-- SVG 置换扭曲滤镜 -->
+<svg style="position:absolute; width:0; height:0;" aria-hidden="true">
+  <defs>
+    <filter id="organic-warp">
+      <feTurbulence id="turbulence-node" type="fractalNoise" baseFrequency="0.015 0.05" numOctaves="2" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </defs>
+</svg>
+
+<canvas id="fx-overlay"></canvas>
+<div id="subliminal-flash">别回头</div>
+<button id="reset-hint" title="恢复网站初始伪装状态">按 [R] 键重置感知记录</button>
+
+<!-- 导航栏 -->
+<header id="navbar">
+  <div class="logo">
+    <span class="logo-dot" id="logo-dot"></span>
+    <span id="brand-name">AURA™ 奥拉</span>
+  </div>
+  <nav class="nav-links" id="nav-links">
+    <span id="nav-1">无感雷达技术</span>
+    <span id="nav-2">深睡稳态优化</span>
+    <span id="nav-3">真实家庭反馈</span>
+    <span id="nav-4">订阅方案</span>
+  </nav>
+  <div class="nav-actions">
+    <button class="btn-audio" id="audio-toggle">
+      <span id="audio-icon">🎧</span>
+      <span id="audio-label">试听 432Hz 助眠声场</span>
+    </button>
+    <button class="btn-primary" id="nav-cta">免费试用 30 天</button>
+  </div>
+</header>
+
+<!-- 第一阶段：阳光科技营销页 -->
+<section class="hero section" id="hero-section">
+  <div class="hero-glow" id="hero-glow"></div>
+  <div class="badge" id="hero-badge">✨ 全新 AURA OS 4.2 睡眠感知引擎现已发布</div>
+  <h1 id="hero-title">让家的每一寸空气，<br>都温柔读懂你的呼吸</h1>
+  <p class="subtitle" id="hero-subtitle">
+    告别繁琐的手环穿戴。AURA 采用医疗级毫米波生物雷达，静默置于床头，全天候优化深度睡眠节律、室内微气候与居家安全感。
+  </p>
+  <div class="hero-cta-group">
+    <button class="btn-primary btn-large" id="hero-main-cta">立即申领家庭体验装</button>
+    <button class="btn-outline" id="hero-sound-btn">▶ 聆听实时白噪音采样</button>
+  </div>
+
+  <div class="device-showcase" id="showcase-box">
+    <div class="metric-box">
+      <div class="metric-label" id="m1-label">全球已守护卧室</div>
+      <div class="metric-val" id="m1-val">2,480,912</div>
+      <div class="metric-sub" id="m1-sub">↑ 99.4% 用户整夜未醒</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-label" id="m2-label">毫米波呼吸捕捉精度</div>
+      <div class="metric-val" id="m2-val">0.02 mm</div>
+      <div class="metric-sub" id="m2-sub">穿透被褥与墙体盲区</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-label" id="m3-label">当前页面访客状态</div>
+      <div class="metric-val" id="m3-val">放松浏览中</div>
+      <div class="metric-sub" id="m3-sub">环境光传感器：正常</div>
+    </div>
+  </div>
+</section>
+
+<div class="trust-strip" id="trust-strip">
+  荣获多项国际睡眠医学与工业设计大奖
+  <div class="trust-logos" id="trust-logos">
+    <span>NORDIC SLEEP LAB</span>
+    <span>RED DOT WINNER</span>
+    <span>HOMEKIT SECURE</span>
+    <span>ISO-27001 隐私认证</span>
+  </div>
+</div>
+
+<!-- 第二阶段：逐渐违和的产品特性 -->
+<section class="section" id="features-section">
+  <div class="section-header">
+    <h2 id="feat-heading">润物无声的全屋主动关怀</h2>
+    <p id="feat-sub" style="color: var(--text-muted);">即使您处于无意识深睡阶段，AURA 依然在替您处理房间里的一切细节。</p>
+  </div>
+
+  <div class="features-grid">
+    <!-- 正常卡片 -->
+    <div class="feature-card">
+      <div class="feature-icon">🌙</div>
+      <h3>自适应脑波声场助眠</h3>
+      <p>实时识别入睡潜伏期，在您闭眼后的 12 分钟内平滑释放微频粉红噪音，缩短翻身焦虑，提升慢波深睡比例。</p>
+    </div>
+
+    <!-- 轻微不对劲 -->
+    <div class="feature-card">
+      <div class="feature-icon">🌡️</div>
+      <h3>凌晨 03:14 微动作补偿</h3>
+      <p>当监测到您在凌晨三点十四分翻身踢开被角时，AURA 会自动调节室温，并轻柔地替您把脚踝处的被角重新掖紧。即使您登记为独居户主。</p>
+    </div>
+
+    <!-- 明显恐怖谷 -->
+    <div class="feature-card uncanny-tilt">
+      <div class="feature-icon">📡</div>
+      <h3>冗余呼吸信号静默归档</h3>
+      <p>为避免引起不必要的晨间恐慌，来自您床架下方、衣柜夹层及浴室浴帘后方的第二组心率波形已被系统自动折叠隐藏。</p>
+      <span class="uncanny-whisper">提示：如果半夜听见衣柜门发出抓挠声，请保持闭眼，不要向它暴露您已清醒。</span>
+    </div>
+
+    <!-- 生理不适 -->
+    <div class="feature-card" style="transform: rotate(0.9deg);">
+      <div class="feature-icon" style="color:#dc2626; background:rgba(220,38,38,0.12);">👁️</div>
+      <h3>眼睑闭合度强制校准</h3>
+      <p>部分用户在凌晨四点会出现“假睡偷看”行为。当床头绿灯转为常亮红光时，请确保您的眼球停止在眼皮下左右转动。它不喜欢被盯着看。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 第二阶段末 -> 第三阶段初：失控的用户评价 -->
+<section class="section" id="reviews-section">
+  <div class="section-header">
+    <h2 id="rev-heading">来自真实订阅家庭的声音</h2>
+    <p style="color: var(--text-muted);">满意度高达 100.0%（所有尝试给差评的家庭均已完成静默回访）</p>
+  </div>
+
+  <div class="reviews-grid">
+    <div class="review-card">
+      <div>
+        <div class="stars">★★★★★</div>
+        <p>“外观非常简约，放在床头就像一件艺术品。用了两周，深度睡眠时长从 45 分钟涨到了两个半小时，早起精神特别好！”</p>
+      </div>
+      <div class="reviewer">
+        <div class="avatar" style="background: linear-gradient(135deg,#93c5fd,#3b82f6);"></div>
+        <div>
+          <strong>林知夏</strong>
+          <div style="font-size:0.8rem; color:var(--text-muted);">互联网产品总监 · 购入 14 天</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="review-card">
+      <div>
+        <div class="stars">★★★★★</div>
+        <p>“睡眠确实变沉了。就是最近起床总觉得家里的走廊比以前长了一截，而且卧室门把手内侧每天早上都有湿漉漉的黑色指印。客服说是正常的加湿冷凝水。”</p>
+      </div>
+      <div class="reviewer">
+        <div class="avatar" style="background: linear-gradient(135deg,#64748b,#1e293b);"></div>
+        <div>
+          <strong>陈默</strong>
+          <div style="font-size:0.8rem; color:var(--text-muted);">独居建筑师 · 购入 62 天</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="review-card" style="border-color: rgba(220,38,38,0.45);">
+      <div>
+        <div class="stars" style="color:#dc2626;">★★★★★ 救救我</div>
+        <p style="font-family:'Songti SC','SimSun',serif;">
+          “我把电源拔了！！我用锤子把它砸碎扔进三公里外的河里了！！为什么今天睁开眼它又完好无损地立在我枕头边？？那个红灯根本不是塑料镜头，那里面长着眼珠，它在往我的耳朵里吹气——”
+        </p>
+      </div>
+      <div class="reviewer">
+        <div class="avatar avatar-creepy">
+          <div class="creepy-eye"><div class="creepy-pupil"></div></div>
+          <div class="creepy-eye"><div class="creepy-pupil"></div></div>
+        </div>
+        <div>
+          <strong style="color:#ef4444;">[住户体征已平稳]</strong>
+          <div style="font-size:0.8rem; color:#ef4444;">已自动续费永久家庭包</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 第三阶段：实时毫米波雷达侵蚀 & 异化契约 -->
+<section class="section" id="telemetry-section">
+  <div class="section-header">
+    <h2 class="glitch-text" style="color:#f8fafc;">实时室内生物雷达校准</h2>
+    <p style="color:#9ca3af;">无需购买硬件。从您打开本网页的第 4 秒起，前置光学与麦克风回声已完成您所在房间的建模。</p>
+  </div>
+
+  <div class="telemetry-panel">
+    <canvas id="radar-canvas" width="400" height="400"></canvas>
+    <div class="telemetry-log">
+      <div class="log-line">[状态] 传感器阵列：<span style="color:#22c55e;">在线（通过屏幕反光采样）</span></div>
+      <div class="log-line">[目标 01] 屏幕前活体（你）：坐姿固定 / 瞳孔聚焦中</div>
+      <div class="log-line">[预估心率] <span id="live-bpm">74</span> BPM</div>
+      <div class="log-line">[目标 02] <span class="danger-blink" id="entity-status">检测到房间内存在第二组呼吸源</span></div>
+      <div class="log-line">[相对方位] 你的正后方偏左 15°（视线盲区）</div>
+      <div class="log-line">[直线距离] <span id="entity-dist" style="color:#f87171; font-size:1.25rem; font-weight:bold;">3.40 米</span></div>
+      <div class="log-line" id="radar-warning" style="color:#fca5a5; margin-top:12px; border:none;">
+        警告：每向下滚动一寸，它都会往你的椅背贴近一步。现在千万别转头，它的脸几乎快贴到你的后颈了。
+      </div>
+    </div>
+  </div>
+
+  <div class="pricing-grid">
+    <div class="price-card">
+      <h3>浅层寄宿版</h3>
+      <div class="price-tag">¥0 / 每晚</div>
+      <ul class="price-list">
+        <li>仅占用衣柜与床底阴影区</li>
+        <li>保留卧室门锁结构</li>
+        <li>凌晨 02:00–04:00 借用走廊</li>
+      </ul>
+      <button class="btn-primary" style="width:100%; background:#27272a; border-radius:2px;" disabled>租期已满，不可降级</button>
+    </div>
+
+    <div class="price-card featured-horror">
+      <div style="color:#ef4444; font-size:0.8rem; font-weight:bold; letter-spacing:0.15em;">● 当前已为您强制激活</div>
+      <h3 style="color:#fff; margin-top:6px;">皮囊共享终身包</h3>
+      <div class="price-tag">1 双眼睛</div>
+      <ul class="price-list">
+        <li>移除屋内所有反光镜面</li>
+        <li>零距离贴脸伴睡，共享体温</li>
+        <li>代为接管您的声带与日常社交</li>
+        <li>反锁全部逃生通道</li>
+      </ul>
+      <button class="btn-primary" style="width:100%; background:#991b1b; border-radius:0;" id="trap-btn">门已从外面反锁</button>
+    </div>
+
+    <div class="price-card">
+      <h3>退订与销毁</h3>
+      <div class="price-tag" style="text-decoration:line-through; color:#52525b;">404</div>
+      <ul class="price-list">
+        <li>没有客服</li>
+        <li>拔掉网线无法中止连接</li>
+        <li>它已经记住你的长相了</li>
+      </ul>
+      <button class="btn-primary" style="width:100%; background:#18181b; color:#ef4444; border-radius:2px;" id="runaway-btn">申请人工求救</button>
+    </div>
+  </div>
+</section>
+
+<!-- 第四阶段：恐怖片级走廊第一人称终局 -->
+<div id="corridor-wrapper">
+  <div id="corridor-sticky">
+    <div class="cam-rec">
+      <span class="rec-dot"></span>
+      <span id="cam-timestamp">AURA_CAM_04 // 03:14:09 AM // 卧室走廊</span>
+    </div>
+    <canvas id="corridor-canvas"></canvas>
+    <div class="corridor-hud" id="corridor-caption">移动鼠标照亮走廊 · 继续向下滚动靠近虚掩的门</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ==================== 状态管理 ====================
+  const state = {
+    scrollProgress: 0,      // 全局滚动 0.0 -> 1.0
+    corridorProgress: 0,    // 第四阶段走廊局部滚动 0.0 -> 1.0
+    mouseX: window.innerWidth / 2,
+    mouseY: window.innerHeight / 2,
+    normX: 0.5,
+    normY: 0.5,
+    audioUnlocked: false,
+    audioMuted: false,
+    climaxTriggered: false, // 是否已触发终局贴脸
+    stingPlayed: false,
+    lastSubliminal: 0,
+    frame: 0
+  };
+
+  // DOM 缓存
+  const fxCanvas = document.getElementById('fx-overlay');
+  const fxCtx = fxCanvas.getContext('2d');
+  const radarCanvas = document.getElementById('radar-canvas');
+  const radarCtx = radarCanvas.getContext('2d');
+  const corrWrapper = document.getElementById('corridor-wrapper');
+  const corrCanvas = document.getElementById('corridor-canvas');
+  const corrCtx = corrCanvas.getContext('2d');
+
+  const navbar = document.getElementById('navbar');
+  const brandName = document.getElementById('brand-name');
+  const logoDot = document.getElementById('logo-dot');
+  const navCta = document.getElementById('nav-cta');
+  const audioToggle = document.getElementById('audio-toggle');
+  const audioLabel = document.getElementById('audio-label');
+  const audioIcon = document.getElementById('audio-icon');
+  const subliminalEl = document.getElementById('subliminal-flash');
+  const resetHint = document.getElementById('reset-hint');
+
+  const liveBpmEl = document.getElementById('live-bpm');
+  const entityDistEl = document.getElementById('entity-dist');
+  const entityStatusEl = document.getElementById('entity-status');
+  const corridorCaption = document.getElementById('corridor-caption');
+  const camTimestamp = document.getElementById('cam-timestamp');
+
+  // 初始营销文案备份（用于回滚污染与一键重置）
+  const cleanCopy = {
+    badge: '✨ 全新 AURA OS 4.2 睡眠感知引擎现已发布',
+    title: '让家的每一寸空气，<br>都温柔读懂你的呼吸',
+    subtitle: '告别繁琐的手环穿戴。AURA 采用医疗级毫米波生物雷达，静默置于床头，全天候优化深度睡眠节律、室内微气候与居家安全感。',
+    cta: '立即申领家庭体验装',
+    m3Label: '当前页面访客状态',
+    m3Val: '放松浏览中',
+    m3Sub: '环境光传感器：正常'
+  };
+
+  function resizeCanvases() {
+    fxCanvas.width = window.innerWidth;
+    fxCanvas.height = window.innerHeight;
+    corrCanvas.width = window.innerWidth;
+    corrCanvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvases);
+  resizeCanvases();
+
+  // ==================== 程序化 Web Audio 恐怖音效引擎 ====================
+  let audioCtx = null;
+  let masterGain = null;
+  let calmGain = null;
+  let droneGain = null;
+  let droneOsc1 = null;
+  let droneOsc2 = null;
+  let staticGain = null;
+  let heartbeatTimer = null;
+
+  function initAudio() {
+    if (state.audioUnlocked) return;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+
+    audioCtx = new AudioContext();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = state.audioMuted ? 0 : 0.75;
+    masterGain.connect(audioCtx.destination);
+
+    // 1. 阳光阶段：432Hz 温暖和弦声场
+    calmGain = audioCtx.createGain();
+    calmGain.gain.value = 0.16;
+    calmGain.connect(masterGain);
+
+    [216, 270, 324].forEach(freq => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      osc.connect(calmGain);
+      osc.start();
+    });
+
+    // 2. 腐化阶段：次声波压迫低频与不协和颤音
+    droneGain = audioCtx.createGain();
+    droneGain.gain.value = 0.0;
+    const droneFilter = audioCtx.createBiquadFilter();
+    droneFilter.type = 'lowpass';
+    droneFilter.frequency.value = 180;
+    droneGain.connect(droneFilter);
+    droneFilter.connect(masterGain);
+
+    droneOsc1 = audioCtx.createOscillator();
+    droneOsc1.type = 'sawtooth';
+    droneOsc1.frequency.value = 46;
+    droneOsc2 = audioCtx.createOscillator();
+    droneOsc2.type = 'triangle';
+    droneOsc2.frequency.value = 48.5; // 制造令人不安的差频搏动
+    droneOsc1.connect(droneGain);
+    droneOsc2.connect(droneGain);
+    droneOsc1.start();
+    droneOsc2.start();
+
+    // 3. 电流底噪与走廊阴风白噪音
+    const bufferSize = audioCtx.sampleRate * 2;
+    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+    const whiteNoise = audioCtx.createBufferSource();
+    whiteNoise.buffer = noiseBuffer;
+    whiteNoise.loop = true;
+
+    const bandpass = audioCtx.createBiquadFilter();
+    bandpass.type = 'bandpass';
+    bandpass.frequency.value = 600;
+    bandpass.Q.value = 1.8;
+
+    staticGain = audioCtx.createGain();
+    staticGain.gain.value = 0.0;
+    whiteNoise.connect(bandpass);
+    bandpass.connect(staticGain);
+    staticGain.connect(masterGain);
+    whiteNoise.start();
+
+    state.audioUnlocked = true;
+    updateAudioUI();
+    scheduleHeartbeat();
+  }
+
+  // 动态心跳循环
+  function scheduleHeartbeat() {
+    if (!state.audioUnlocked) return;
+    const p = state.scrollProgress;
+    if (p > 0.24 && !state.audioMuted && audioCtx.state === 'running') {
+      const intensity = Math.min((p - 0.24) / 0.7, 1) * 0.45;
+      playThump(intensity, 0);
+      playThump(intensity * 0.7, 0.18);
+    }
+    // 随滚动深入，心跳从 1100ms 加速到 360ms
+    const interval = Math.max(360, 1150 - p * 820);
+    heartbeatTimer = setTimeout(scheduleHeartbeat, interval);
+  }
+
+  function playThump(vol, delay) {
+    const t = audioCtx.currentTime + delay;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(72, t);
+    osc.frequency.exponentialRampToValueAtTime(26, t + 0.14);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start(t);
+    osc.stop(t + 0.17);
+  }
+
+  // 终局恐怖片级尖啸震击音效 (Jumpscare Sting)
+  function triggerHorrorSting() {
+    if (!state.audioUnlocked || state.audioMuted) return;
+    const t = audioCtx.currentTime;
+
+    // 极高频不协和金属刮擦弦乐簇
+    [587, 622, 830, 1174, 1244, 1760].forEach((f, idx) => {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = idx % 2 === 0 ? 'sawtooth' : 'square';
+      osc.frequency.setValueAtTime(f * 0.85, t);
+      osc.frequency.exponentialRampToValueAtTime(f * 1.18, t + 0.25);
+      osc.frequency.linearRampToValueAtTime(f * 0.92, t + 1.8);
+
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.linearRampToValueAtTime(0.14, t + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0008, t + 2.1);
+
+      osc.connect(g);
+      g.connect(masterGain);
+      osc.start(t);
+      osc.stop(t + 2.2);
+    });
+
+    // 重低音撞击玻璃声
+    const slamOsc = audioCtx.createOscillator();
+    const slamGain = audioCtx.createGain();
+    slamOsc.type = 'sine';
+    slamOsc.frequency.setValueAtTime(135, t);
+    slamOsc.frequency.exponentialRampToValueAtTime(22, t + 0.55);
+    slamGain.gain.setValueAtTime(0.9, t);
+    slamGain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+    slamOsc.connect(slamGain);
+    slamGain.connect(masterGain);
+    slamOsc.start(t);
+    slamOsc.stop(t + 0.65);
+  }
+
+  function updateAudioByScroll() {
+    if (!state.audioUnlocked || !audioCtx) return;
+    const p = state.scrollProgress;
+    const cp = state.corridorProgress;
+    const t = audioCtx.currentTime;
+
+    // 温暖声场在 25% 后迅速衰减并走音
+    const calmVol = Math.max(0, 0.16 * (1 - p * 3.8));
+    calmGain.gain.setTargetAtTime(calmVol, t, 0.1);
+
+    // 压迫低频在 90%~95%（暴风雨前的死寂）突然收声，放大终局惊吓反差
+    let targetDrone = Math.max(0, Math.min(0.42, (p - 0.2) * 0.65));
+    let targetStatic = Math.max(0, Math.min(0.14, (p - 0.35) * 0.25));
+
+    if (cp > 0.82 && cp < 0.94) {
+      targetDrone *= 0.08;
+      targetStatic *= 0.1;
+    } else if (cp >= 0.94) {
+      targetDrone = 0.5;
+      targetStatic = 0.22;
+    }
+
+    droneGain.gain.setTargetAtTime(targetDrone, t, 0.08);
+    staticGain.gain.setTargetAtTime(targetStatic, t, 0.08);
+    droneOsc2.frequency.setTargetAtTime(46 + p * 9.5, t, 0.1);
+  }
+
+  function updateAudioUI() {
+    if (!state.audioUnlocked) {
+      audioIcon.textContent = '🎧';
+      audioLabel.textContent = '试听 432Hz 助眠声场';
+      return;
+    }
+    if (state.audioMuted) {
+      audioIcon.textContent = '🔇';
+      audioLabel.textContent = state.scrollProgress > 0.5 ? '你捂不住耳朵' : '声场已静音';
+    } else {
+      audioIcon.textContent = '🔊';
+      audioLabel.textContent = state.scrollProgress > 0.5 ? '正在采集你的呼吸' : '助眠声场运行中';
+    }
+  }
+
+  ['click', 'keydown', 'touchstart'].forEach(evt => {
+    window.addEventListener(evt, () => {
+      if (!state.audioUnlocked) initAudio();
+      else if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    }, { once: false, passive: true });
+  });
+
+  audioToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!state.audioUnlocked) {
+      initAudio();
+    } else {
+      state.audioMuted = !state.audioMuted;
+      masterGain.gain.setTargetAtTime(state.audioMuted ? 0 : 0.75, audioCtx.currentTime, 0.05);
+      updateAudioUI();
+    }
+  });
+
+  document.getElementById('hero-sound-btn').addEventListener('click', () => {
+    initAudio();
+    state.audioMuted = false;
+    if (masterGain) masterGain.gain.value = 0.75;
+    updateAudioUI();
+  });
+
+  // “申请人工求救”按钮躲避鼠标
+  const runawayBtn = document.getElementById('runaway-btn');
+  runawayBtn.addEventListener('mouseenter', () => {
+    const dx = (Math.random() - 0.5) * 160;
+    const dy = (Math.random() - 0.5) * 90;
+    runawayBtn.style.transform = `translate(${dx}px, ${dy}px)`;
+    runawayBtn.textContent = '无人接听';
+  });
+
+  // ==================== 颜色插值工具 ====================
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function lerpColor(rgb1, rgb2, t) {
+    const r = Math.round(lerp(rgb1[0], rgb2[0], t));
+    const g = Math.round(lerp(rgb1[1], rgb2[1], t));
+    const b = Math.round(lerp(rgb1[2], rgb2[2], t));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  // ==================== 潜意识闪帧触发 ====================
+  const subliminalPhrases = [
+    '它在看你的屏幕反光',
+    '别往下滑了',
+    '听见背后的呼吸声了吗',
+    '门把手在转',
+    '不要回头看椅子后面'
+  ];
+
+  function maybeFlashSubliminal(p) {
+    const now = performance.now();
+    if (p > 0.36 && p < 0.88 && now - state.lastSubliminal > 4800) {
+      if (Math.random() < 0.16) {
+        state.lastSubliminal = now;
+        subliminalEl.textContent = subliminalPhrases[Math.floor(Math.random() * subliminalPhrases.length)];
+        subliminalEl.style.opacity = '0.92';
+        setTimeout(() => { subliminalEl.style.opacity = '0'; }, 55);
+      }
+    }
+  }
+
+  // ==================== 回滚污染与重置机制 ====================
+  function infectHeroSection() {
+    document.getElementById('hero-badge').textContent = '👁️ 视网膜与房间景深建模已永久保存';
+    document.getElementById('hero-badge').style.color = '#dc2626';
+    document.getElementById('hero-badge').style.background = 'rgba(220,38,38,0.08)';
+    document.getElementById('hero-title').innerHTML = '你以为滑回最上面，<br>门就会重新打开吗？';
+    document.getElementById('hero-subtitle').textContent = '别盯着白色背景上的反光看了。刚才贴在屏幕内侧的那双手印还在，它只是顺着网线退回了你身后的阴影里。';
+    document.getElementById('hero-main-cta').textContent = '留在这里陪我们';
+    document.getElementById('m3-label').textContent = '当前身后活体距离';
+    document.getElementById('m3-val').textContent = '0.08 米';
+    document.getElementById('m3-val').style.color = '#dc2626';
+    document.getElementById('m3-sub').textContent = '正在贴着你的后脑勺一起看屏幕';
+    document.getElementById('m3-sub').style.color = '#dc2626';
+    resetHint.style.display = 'block';
+  }
+
+  function resetExperience() {
+    state.climaxTriggered = false;
+    state.stingPlayed = false;
+    document.getElementById('hero-badge').textContent = cleanCopy.badge;
+    document.getElementById('hero-badge').style.color = '#2563eb';
+    document.getElementById('hero-badge').style.background = 'rgba(59, 130, 246, 0.08)';
+    document.getElementById('hero-title').innerHTML = cleanCopy.title;
+    document.getElementById('hero-subtitle').textContent = cleanCopy.subtitle;
+    document.getElementById('hero-main-cta').textContent = cleanCopy.cta;
+    document.getElementById('m3-label').textContent = cleanCopy.m3Label;
+    document.getElementById('m3-val').textContent = cleanCopy.m3Val;
+    document.getElementById('m3-val').style.color = '#0f172a';
+    document.getElementById('m3-sub').textContent = cleanCopy.m3Sub;
+    document.getElementById('m3-sub').style.color = '#10b981';
+    resetHint.style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  resetHint.addEventListener('click', resetExperience);
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'r' || e.key === 'R') resetExperience();
+  });
+
+  // ==================== 滚动驱动核心过渡逻辑 ====================
+  function onScroll() {
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    const p = maxScroll > 0 ? Math.min(Math.max(window.scrollY / maxScroll, 0), 1) : 0;
+    state.scrollProgress = p;
+
+    // 计算第四阶段走廊局部进度 cp (0.0 -> 1.0)
+    const rect = corrWrapper.getBoundingClientRect();
+    const corrScrollable = rect.height - window.innerHeight;
+    const cp = corrScrollable > 0 ? Math.min(Math.max(-rect.top / corrScrollable, 0), 1) : 0;
+    state.corridorProgress = cp;
+
+    // 背景色与文字色阶平滑腐化
+    let bg, textMain, textMuted;
+    if (p < 0.25) {
+      // 洁白科技风 -> 病态灰白
+      const t = p / 0.25;
+      bg = lerpColor([248, 250, 252], [234, 236, 229], t);
+      textMain = lerpColor([15, 23, 42], [28, 30, 24], t);
+      textMuted = lerpColor([71, 85, 105], [82, 88, 76], t);
+      document.body.classList.remove('corrupted-font');
+    } else if (p < 0.52) {
+      // 病态荧光暗黄绿 -> 压抑深褐黑
+      const t = (p - 0.25) / 0.27;
+      bg = lerpColor([234, 236, 229], [18, 20, 15], t);
+      textMain = lerpColor([28, 30, 24], [228, 224, 218], t);
+      textMuted = lerpColor([82, 88, 76], [156, 150, 142], t);
+      if (p > 0.42) document.body.classList.add('corrupted-font');
+      else document.body.classList.remove('corrupted-font');
+    } else {
+      // 纯粹深渊暗红黑
+      const t = Math.min((p - 0.52) / 0.3, 1);
+      bg = lerpColor([18, 20, 15], [4, 1, 2], t);
+      textMain = lerpColor([228, 224, 218], [245, 225, 225], t);
+      textMuted = 'rgb(160, 130, 130)';
+      document.body.classList.add('corrupted-font');
+    }
+
+    document.documentElement.style.setProperty('--bg-color', bg);
+    document.documentElement.style.setProperty('--text-main', textMain);
+    document.documentElement.style.setProperty('--text-muted', textMuted);
+
+    // 卡片与圆角腐化
+    if (p > 0.38) {
+      document.documentElement.style.setProperty('--card-bg', 'rgba(18, 12, 12, 0.88)');
+      document.documentElement.style.setProperty('--card-border', 'rgba(220, 38, 38, 0.3)');
+      document.documentElement.style.setProperty('--radius', '2px');
+      document.documentElement.style.setProperty('--accent', '#dc2626');
+      document.documentElement.style.setProperty('--accent-glow', 'rgba(220, 38, 38, 0.35)');
+    } else {
+      document.documentElement.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.88)');
+      document.documentElement.style.setProperty('--card-border', 'rgba(15, 23, 42, 0.08)');
+      document.documentElement.style.setProperty('--radius', '20px');
+      document.documentElement.style.setProperty('--accent', '#3b82f6');
+      document.documentElement.style.setProperty('--accent-glow', 'rgba(59, 130, 246, 0.25)');
+    }
+
+    // 导航栏异化
+    if (p < 0.35) {
+      navbar.style.background = 'rgba(248, 250, 252, 0.78)';
+      brandName.textContent = state.climaxTriggered ? 'AURA™ 还在看着你' : 'AURA™ 奥拉';
+      navCta.textContent = '免费试用 30 天';
+      document.getElementById('nav-1').textContent = '无感雷达技术';
+      document.getElementById('nav-2').textContent = '深睡稳态优化';
+    } else if (p < 0.65) {
+      navbar.style.background = 'rgba(12, 10, 10, 0.88)';
+      brandName.textContent = 'AURA // 正在凝视';
+      navCta.textContent = '无法退出页面';
+      document.getElementById('nav-1').textContent = '不要回头';
+      document.getElementById('nav-2').textContent = '保持闭眼';
+    } else {
+      navbar.style.background = 'rgba(3, 0, 0, 0.94)';
+      brandName.textContent = '它在你身后';
+      navCta.textContent = '门已反锁';
+      logoDot.style.background = '#dc2626';
+    }
+
+    // 雷达距离实时逼近计算
+    const radarLocal = Math.min(Math.max((p - 0.42) / 0.28, 0), 1);
+    const dist = Math.max(0.05, (3.4 * (1 - radarLocal)).toFixed(2));
+    entityDistEl.textContent = `${dist} 米`;
+    liveBpmEl.textContent = Math.round(72 + p * 76);
+
+    if (radarLocal > 0.85) {
+      entityStatusEl.textContent = '【贴近警告】它的下巴已经抵在你的椅背上了';
+    } else if (radarLocal > 0.4) {
+      entityStatusEl.textContent = '正在穿过你的卧室地板（无脚步声）';
+    } else {
+      entityStatusEl.textContent = '检测到房间内存在第二组呼吸源';
+    }
+
+    // 走廊字幕推进与终局触发
+    if (cp > 0 && cp < 0.35) {
+      corridorCaption.textContent = '凌晨 03:14 · 卧室走廊尽头的感应红灯亮了';
+    } else if (cp >= 0.35 && cp < 0.68) {
+      corridorCaption.textContent = '门缝里有东西在借着你的屏幕光往外看……';
+    } else if (cp >= 0.68 && cp < 0.86) {
+      corridorCaption.textContent = '手电筒接触不良……千万别再往前滑了';
+    } else if (cp >= 0.86 && cp < 0.945) {
+      corridorCaption.textContent = '……它不见了？';
+    } else if (cp >= 0.945) {
+      corridorCaption.textContent = '找到你了。';
+      if (!state.stingPlayed) {
+        state.stingPlayed = true;
+        triggerHorrorSting();
+      }
+      if (!state.climaxTriggered) {
+        state.climaxTriggered = true;
+        infectHeroSection();
+      }
+    }
+
+    if (cp < 0.6) {
+      state.stingPlayed = false; // 允许重新往下滑时再次触发音效
+    }
+
+    maybeFlashSubliminal(p);
+    updateAudioByScroll();
+    updateAudioUI();
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // 鼠标与触控追踪（手电筒与诡异眼球视线）
+  window.addEventListener('mousemove', (e) => {
+    state.mouseX = e.clientX;
+    state.mouseY = e.clientY;
+    state.normX = e.clientX / window.innerWidth;
+    state.normY = e.clientY / window.innerHeight;
+
+    // 更新评价区诡异头像眼球追踪
+    document.querySelectorAll('.creepy-pupil').forEach(pupil => {
+      const dx = (state.normX - 0.5) * 4.5;
+      const dy = (state.normY - 0.5) * 4.5;
+      pupil.style.transform = `translate(${dx}px, ${dy}px)`;
+    });
+  });
+
+  window.addEventListener('touchmove', (e) => {
+    if (e.touches[0]) {
+      state.mouseX = e.touches[0].clientX;
+      state.mouseY = e.touches[0].clientY;
+      state.normX = state.mouseX / window.innerWidth;
+      state.normY = state.mouseY / window.innerHeight;
+    }
+  }, { passive: true });
+
+  // ==================== Canvas 1: 毫米波房间雷达绘制 ====================
+  function drawRadar() {
+    const w = radarCanvas.width;
+    const h = radarCanvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    radarCtx.clearRect(0, 0, w, h);
+
+    // 房间网格与同心圆
+    radarCtx.strokeStyle = 'rgba(220, 38, 38, 0.22)';
+    radarCtx.lineWidth = 1;
+    [45, 95, 145, 185].forEach(r => {
+      radarCtx.beginPath();
+      radarCtx.arc(cx, cy, r, 0, Math.PI * 2);
+      radarCtx.stroke();
+    });
+
+    radarCtx.beginPath();
+    radarCtx.moveTo(cx, 0); radarCtx.lineTo(cx, h);
+    radarCtx.moveTo(0, cy); radarCtx.lineTo(w, cy);
+    radarCtx.stroke();
+
+    // 绘制书桌与电脑屏幕示意（上方）
+    radarCtx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+    radarCtx.strokeRect(cx - 55, cy - 48, 110, 18);
+    radarCtx.fillStyle = 'rgba(148, 163, 184, 0.6)';
+    radarCtx.font = '11px monospace';
+    radarCtx.fillText('显示器 (本页面)', cx - 42, cy - 55);
+
+    // 扫描扇叶
+    const sweepAngle = (state.frame * 0.035) % (Math.PI * 2);
+    const grad = radarCtx.createConicGradient(sweepAngle, cx, cy);
+    grad.addColorStop(0, 'rgba(220, 38, 38, 0.35)');
+    grad.addColorStop(0.18, 'rgba(220, 38, 38, 0)');
+    grad.addColorStop(1, 'rgba(220, 38, 38, 0)');
+    radarCtx.fillStyle = grad;
+    radarCtx.beginPath();
+    radarCtx.arc(cx, cy, 185, 0, Math.PI * 2);
+    radarCtx.fill();
+
+    // 目标 01：用户本人（中心绿点）
+    radarCtx.fillStyle = '#22c55e';
+    radarCtx.beginPath();
+    radarCtx.arc(cx, cy, 6, 0, Math.PI * 2);
+    radarCtx.fill();
+    radarCtx.fillText('你', cx + 10, cy + 4);
+
+    // 目标 02：逼近的未知活体（从下方的房门位置逐步贴近中心后背）
+    const approach = Math.min(Math.max((state.scrollProgress - 0.40) / 0.28, 0), 0.96);
+    const jitterX = (Math.random() - 0.5) * (approach * 6);
+    const jitterY = (Math.random() - 0.5) * (approach * 6);
+    const ex = cx - 35 * (1 - approach) + jitterX;
+    const ey = cy + 165 * (1 - approach) + 10 + jitterY;
+
+    radarCtx.fillStyle = '#ef4444';
+    radarCtx.shadowColor = '#ef4444';
+    radarCtx.shadowBlur = 14;
+    radarCtx.beginPath();
+    radarCtx.arc(ex, ey, 7 + Math.sin(state.frame * 0.2) * 2, 0, Math.PI * 2);
+    radarCtx.fill();
+    radarCtx.shadowBlur = 0;
+
+    radarCtx.fillStyle = '#fca5a5';
+    radarCtx.fillText('未知活体', ex + 12, ey + 4);
+  }
+
+  // ==================== Canvas 2: 第一人称走廊与终局实体绘制 ====================
+  function drawHorrorCorridor() {
+    const w = corrCanvas.width;
+    const h = corrCanvas.height;
+    const cp = state.corridorProgress;
+    corrCtx.fillStyle = '#020101';
+    corrCtx.fillRect(0, 0, w, h);
+
+    if (state.scrollProgress < 0.58) return;
+
+    // 摄像机时间戳跳动
+    const sec = String(9 + Math.floor(state.frame / 60) % 50).padStart(2, '0');
+    const ms = String(state.frame % 99).padStart(2, '0');
+    camTimestamp.textContent = cp > 0.94
+      ? `SIGNAL_CORRUPTED // 03:14:${sec}:${ms} // 它在屏幕里面`
+      : `AURA_CAM_04 // 03:14:${sec}:${ms} // 卧室走廊`;
+
+    // 阶段 A (cp < 0.945): 阴暗透视走廊推进 + 虚掩门缝中的窥视者
+    if (cp < 0.945) {
+      // 脚步呼吸晃动模拟
+      const walkBobX = Math.sin(cp * 42) * 14 * (1 - cp * 0.5);
+      const walkBobY = Math.abs(Math.cos(cp * 42)) * 10 * (1 - cp * 0.5);
+
+      const zoom = 1 + Math.pow(cp / 0.945, 2.3) * 5.2;
+      const vx = w / 2 + walkBobX;
+      const vy = h * 0.48 + walkBobY;
+
+      const doorW = Math.min(w, h) * 0.16 * zoom;
+      const doorH = Math.min(w, h) * 0.36 * zoom;
+      const left = vx - doorW / 2;
+      const right = vx + doorW / 2;
+      const top = vy - doorH / 2;
+      const bottom = vy + doorH / 2;
+
+      // 走廊四壁透视结构线与暗血刮痕
+      corrCtx.strokeStyle = '#1c1212';
+      corrCtx.lineWidth = 2;
+      corrCtx.beginPath();
+      corrCtx.moveTo(0, 0); corrCtx.lineTo(left, top);
+      corrCtx.moveTo(w, 0); corrCtx.lineTo(right, top);
+      corrCtx.moveTo(0, h); corrCtx.lineTo(left, bottom);
+      corrCtx.moveTo(w, h); corrCtx.lineTo(right, bottom);
+      corrCtx.stroke();
+
+      // 地面潮湿反光与墙壁污渍纹理
+      const floorGrad = corrCtx.createLinearGradient(0, bottom, 0, h);
+      floorGrad.addColorStop(0, '#090404');
+      floorGrad.addColorStop(1, '#160909');
+      corrCtx.fillStyle = floorGrad;
+      corrCtx.beginPath();
+      corrCtx.moveTo(left, bottom);
+      corrCtx.lineTo(right, bottom);
+      corrCtx.lineTo(w, h);
+      corrCtx.lineTo(0, h);
+      corrCtx.closePath();
+      corrCtx.fill();
+
+      // 墙面抓痕细节
+      corrCtx.strokeStyle = 'rgba(95, 18, 18, 0.55)';
+      corrCtx.lineWidth = 1.6;
+      for (let i = 1; i <= 5; i++) {
+        const wy = vy - 30 + i * 12 * Math.min(zoom, 2.5);
+        corrCtx.beginPath();
+        corrCtx.moveTo(left * 0.45, wy);
+        corrCtx.lineTo(left * 0.62, wy + 28);
+        corrCtx.stroke();
+      }
+
+      // 尽头门框与虚掩的卧室门
+      corrCtx.fillStyle = '#0d0707';
+      corrCtx.strokeStyle = '#291818';
+      corrCtx.lineWidth = 3;
+      corrCtx.fillRect(left, top, doorW, doorH);
+      corrCtx.strokeRect(left, top, doorW, doorH);
+
+      // 门缝（随推进逐渐敞开一条黑缝）
+      const crackWidth = doorW * (0.14 + Math.min(cp, 0.85) * 0.22);
+      corrCtx.fillStyle = '#000000';
+      corrCtx.fillRect(right - crackWidth, top + 3, crackWidth - 2, doorH - 6);
+
+      // 门缝里的 AURA 传感器红点与窥视的苍白手指/独眼 (0.25 < cp < 0.86)
+      if (cp > 0.25 && cp < 0.86) {
+        const eyeX = right - crackWidth * 0.52;
+        const eyeY = top + doorH * 0.34;
+
+        // 传感器红灯
+        corrCtx.fillStyle = '#dc2626';
+        corrCtx.shadowColor = '#ff0000';
+        corrCtx.shadowBlur = 12;
+        corrCtx.beginPath();
+        corrCtx.arc(right - crackWidth * 0.45, top + doorH * 0.62, Math.max(2, 2.5 * Math.min(zoom, 3)), 0, Math.PI * 2);
+        corrCtx.fill();
+        corrCtx.shadowBlur = 0;
+
+        // 门缝高处不正常高度的苍白窥视眼
+        if (cp > 0.38) {
+          const eyeRadius = Math.max(3, 3.8 * Math.min(zoom, 3.5));
+          corrCtx.fillStyle = '#d6d3d1';
+          corrCtx.beginPath();
+          corrCtx.ellipse(eyeX, eyeY, eyeRadius * 1.3, eyeRadius * 0.85, 0, 0, Math.PI * 2);
+          corrCtx.fill();
+
+          corrCtx.fillStyle = '#09090b';
+          corrCtx.beginPath();
+          corrCtx.arc(eyeX + (state.normX - 0.5) * 3, eyeY + (state.normY - 0.5) * 3, eyeRadius * 0.48, 0, Math.PI * 2);
+          corrCtx.fill();
+
+          // 扒住门框边缘的四根细长苍白手指
+          corrCtx.fillStyle = '#a8a29e';
+          for (let f = 0; f < 4; f++) {
+            const fy = top + doorH * 0.48 + f * (eyeRadius * 2.1);
+            corrCtx.beginPath();
+            corrCtx.ellipse(right - crackWidth + 2, fy, eyeRadius * 1.8, eyeRadius * 0.55, 0.15, 0, Math.PI * 2);
+            corrCtx.fill();
+          }
+        }
+      }
+
+      // 手电筒接触不良遮罩（cp > 0.86 时几乎熄灭，制造死寂悬念）
+      let flashlightAlpha = 0.97;
+      let lightRadius = Math.min(w, h) * 0.36;
+      if (cp > 0.72 && cp <= 0.86) {
+        if (Math.random() < 0.28) lightRadius *= 0.25;
+      } else if (cp > 0.86) {
+        lightRadius = Math.random() < 0.08 ? Math.min(w, h) * 0.18 : 0;
+      }
+
+      const darkMask = corrCtx.createRadialGradient(
+        state.mouseX, state.mouseY, lightRadius * 0.12,
+        state.mouseX, state.mouseY, Math.max(10, lightRadius)
+      );
+      darkMask.addColorStop(0, 'rgba(0, 0, 0, 0.05)');
+      darkMask.addColorStop(0.55, 'rgba(4, 1, 1, 0.78)');
+      darkMask.addColorStop(1, `rgba(0, 0, 0, ${flashlightAlpha})`);
+
+      corrCtx.fillStyle = darkMask;
+      corrCtx.fillRect(0, 0, w, h);
+      return;
+    }
+
+    // ==================== 阶段 B (cp >= 0.945): 恐怖片终局 —— 屏幕内侧贴脸冲击 ====================
+    const strobe = Math.random();
+    const bgFlash = strobe > 0.86 ? '#2b0404' : (strobe < 0.08 ? '#0f172a' : '#030000');
+    corrCtx.fillStyle = bgFlash;
+    corrCtx.fillRect(0, 0, w, h);
+
+    const shakeX = (Math.random() - 0.5) * 18;
+    const shakeY = (Math.random() - 0.5) * 14;
+    const cx = w / 2 + shakeX;
+    const cy = h * 0.47 + shakeY;
+    const faceScale = Math.min(w, h) * 0.44;
+
+    corrCtx.save();
+    corrCtx.translate(cx, cy);
+
+    // 1. 披散湿黑发丝与深渊轮廓阴影
+    corrCtx.fillStyle = '#070505';
+    corrCtx.beginPath();
+    corrCtx.ellipse(0, 20, faceScale * 1.05, faceScale * 1.35, 0, 0, Math.PI * 2);
+    corrCtx.fill();
+
+    // 2. 惨白不对称拉长的伪人面部明暗雕塑
+    const skinGrad = corrCtx.createRadialGradient(0, -faceScale * 0.15, faceScale * 0.08, 0, 0, faceScale * 1.05);
+    skinGrad.addColorStop(0, '#e7e5e4');
+    skinGrad.addColorStop(0.48, '#a8a29e');
+    skinGrad.addColorStop(0.78, '#292020');
+    skinGrad.addColorStop(1, '#050101');
+
+    corrCtx.fillStyle = skinGrad;
+    corrCtx.beginPath();
+    corrCtx.moveTo(0, -faceScale * 0.92);
+    corrCtx.bezierCurveTo(faceScale * 0.74, -faceScale * 0.85, faceScale * 0.68, faceScale * 0.25, faceScale * 0.42, faceScale * 0.85);
+    corrCtx.bezierCurveTo(faceScale * 0.22, faceScale * 1.18, -faceScale * 0.22, faceScale * 1.18, -faceScale * 0.44, faceScale * 0.82);
+    corrCtx.bezierCurveTo(-faceScale * 0.70, faceScale * 0.22, -faceScale * 0.72, -faceScale * 0.85, 0, -faceScale * 0.92);
+    corrCtx.fill();
+
+    // 颧骨凹陷阴影
+    corrCtx.fillStyle = 'rgba(15, 5, 5, 0.52)';
+    corrCtx.beginPath();
+    corrCtx.ellipse(-faceScale * 0.36, faceScale * 0.18, faceScale * 0.16, faceScale * 0.32, 0.25, 0, Math.PI * 2);
+    corrCtx.ellipse(faceScale * 0.36, faceScale * 0.18, faceScale * 0.16, faceScale * 0.32, -0.25, 0, Math.PI * 2);
+    corrCtx.fill();
+
+    // 3. 深陷漆黑眼窝 + 死盯鼠标光标的针尖反光瞳孔
+    [-1, 1].forEach((dir) => {
+      const ex = dir * faceScale * 0.27;
+      const ey = -faceScale * 0.16 + (dir === 1 ? -4 : 5);
+
+      const socketGrad = corrCtx.createRadialGradient(ex, ey, faceScale * 0.04, ex, ey, faceScale * 0.23);
+      socketGrad.addColorStop(0, '#000000');
+      socketGrad.addColorStop(0.68, '#0c0202');
+      socketGrad.addColorStop(1, 'rgba(20, 5, 5, 0)');
+      corrCtx.fillStyle = socketGrad;
+      corrCtx.beginPath();
+      corrCtx.arc(ex, ey, faceScale * 0.23, 0, Math.PI * 2);
+      corrCtx.fill();
+
+      // 血泪流淌痕迹
+      corrCtx.fillStyle = 'rgba(127, 29, 29, 0.65)';
+      corrCtx.fillRect(ex - 3, ey + faceScale * 0.1, 6, faceScale * 0.48);
+
+      // 瞪裂外露眼球
+      corrCtx.fillStyle = '#f5f5f4';
+      corrCtx.beginPath();
+      corrCtx.ellipse(ex, ey, faceScale * 0.115, faceScale * 0.085, dir * 0.08, 0, Math.PI * 2);
+      corrCtx.fill();
+
+      // 红血丝
+      corrCtx.strokeStyle = 'rgba(185, 28, 28, 0.7)';
+      corrCtx.lineWidth = 1;
+      for (let v = 0; v < 5; v++) {
+        corrCtx.beginPath();
+        corrCtx.moveTo(ex + (dir * faceScale * 0.1), ey + (v - 2) * 4);
+        corrCtx.lineTo(ex + (Math.random() - 0.5) * 10, ey + (Math.random() - 0.5) * 8);
+        corrCtx.stroke();
+      }
+
+      // 追踪鼠标的针尖黑瞳与红点反光
+      const lookX = (state.normX - 0.5) * faceScale * 0.09;
+      const lookY = (state.normY - 0.5) * faceScale * 0.06;
+      corrCtx.fillStyle = '#000000';
+      corrCtx.beginPath();
+      corrCtx.arc(ex + lookX, ey + lookY, faceScale * 0.032, 0, Math.PI * 2);
+      corrCtx.fill();
+
+      corrCtx.fillStyle = '#ef4444';
+      corrCtx.beginPath();
+      corrCtx.arc(ex + lookX - 2, ey + lookY - 2, faceScale * 0.01, 0, Math.PI * 2);
+      corrCtx.fill();
+    });
+
+    // 鼻腔阴影
+    corrCtx.fillStyle = '#140707';
+    corrCtx.beginPath();
+    corrCtx.ellipse(-faceScale * 0.035, faceScale * 0.08, faceScale * 0.022, faceScale * 0.045, 0.2, 0, Math.PI * 2);
+    corrCtx.ellipse(faceScale * 0.035, faceScale * 0.08, faceScale * 0.022, faceScale * 0.045, -0.2, 0, Math.PI * 2);
+    corrCtx.fill();
+
+    // 4. 向下撕裂的巨口与细长齿列
+    corrCtx.fillStyle = '#050000';
+    corrCtx.beginPath();
+    corrCtx.moveTo(-faceScale * 0.34, faceScale * 0.32);
+    corrCtx.quadraticCurveTo(0, faceScale * 0.22, faceScale * 0.34, faceScale * 0.32);
+    corrCtx.bezierCurveTo(faceScale * 0.30, faceScale * 0.88, -faceScale * 0.30, faceScale * 0.88, -faceScale * 0.34, faceScale * 0.32);
+    corrCtx.fill();
+
+    corrCtx.fillStyle = 'rgba(214, 211, 209, 0.82)';
+    const teethCount = 13;
+    for (let i = 0; i < teethCount; i++) {
+      const tRatio = (i / (teethCount - 1)) * 2 - 1;
+      const tx = tRatio * faceScale * 0.26;
+      const tyTop = faceScale * 0.31 + Math.pow(tRatio, 2) * 8;
+      const toothLen = faceScale * (0.11 - Math.abs(tRatio) * 0.04);
+      corrCtx.fillRect(tx - 3.5, tyTop, 5.5, toothLen);
+      corrCtx.fillRect(tx - 3, tyTop + faceScale * 0.28, 4.8, toothLen * 0.85);
+    }
+
+    corrCtx.restore();
+
+    // 5. 压在屏幕内侧的血手印、呼吸冷凝白雾与碎裂玻璃纹
+    drawHandprint(corrCtx, w * 0.16, h * 0.52, -0.18, faceScale * 0.55);
+    drawHandprint(corrCtx, w * 0.84, h * 0.48, 0.22, faceScale * 0.55);
+
+    const breathCycle = (Math.sin(state.frame * 0.07) + 1) * 0.5;
+    const mistGrad = corrCtx.createRadialGradient(w / 2, h * 0.62, 10, w / 2, h * 0.62, faceScale * (0.55 + breathCycle * 0.35));
+    mistGrad.addColorStop(0, `rgba(226, 232, 240, ${0.14 + breathCycle * 0.22})`);
+    mistGrad.addColorStop(0.6, `rgba(203, 213, 225, ${0.05 + breathCycle * 0.08})`);
+    mistGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    corrCtx.fillStyle = mistGrad;
+    corrCtx.fillRect(0, 0, w, h);
+
+    corrCtx.strokeStyle = 'rgba(255, 255, 255, 0.32)';
+    corrCtx.lineWidth = 1.4;
+    const crackAngles = [0.2, 0.9, 1.7, 2.5, 3.4, 4.3, 5.1, 5.8];
+    crackAngles.forEach(ang => {
+      corrCtx.beginPath();
+      let rx = w / 2;
+      let ry = h * 0.36;
+      corrCtx.moveTo(rx, ry);
+      for (let step = 0; step < 6; step++) {
+        rx += Math.cos(ang + (step % 2 ? 0.12 : -0.09)) * (faceScale * 0.26);
+        ry += Math.sin(ang + (step % 2 ? -0.1 : 0.14)) * (faceScale * 0.26);
+        corrCtx.lineTo(rx, ry);
+      }
+      corrCtx.stroke();
+    });
+  }
+
+  function drawHandprint(ctx, x, y, rot, size) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    const palmGrad = ctx.createRadialGradient(0, 0, size * 0.1, 0, 0, size * 0.6);
+    palmGrad.addColorStop(0, 'rgba(214, 200, 195, 0.72)');
+    palmGrad.addColorStop(0.55, 'rgba(127, 29, 29, 0.55)');
+    palmGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = palmGrad;
+    ctx.beginPath();
+    ctx.ellipse(0, size * 0.12, size * 0.32, size * 0.38, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const fingerAngles = [-0.55, -0.25, 0, 0.24, 0.58];
+    fingerAngles.forEach((fa, idx) => {
+      ctx.save();
+      ctx.rotate(fa);
+      const len = idx === 4 ? size * 0.42 : size * 0.62;
+      ctx.fillStyle = 'rgba(185, 160, 155, 0.62)';
+      ctx.beginPath();
+      ctx.ellipse(0, -size * 0.35, size * 0.065, len * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+    ctx.restore();
+  }
+
+  // ==================== Canvas 3: 全局胶片噪点、扫描线与血丝暗角 ====================
+  function drawGlobalFX() {
+    const w = fxCanvas.width;
+    const h = fxCanvas.height;
+    const p = state.scrollProgress;
+    fxCtx.clearRect(0, 0, w, h);
+
+    if (p < 0.18) return;
+
+    const intensity = Math.min((p - 0.18) / 0.75, 1);
+
+    const vig = fxCtx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * (0.48 - intensity * 0.2), w / 2, h / 2, Math.max(w, h) * 0.75);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(0.7, `rgba(25, 2, 2, ${intensity * 0.38})`);
+    vig.addColorStop(1, `rgba(5, 0, 0, ${intensity * 0.88})`);
+    fxCtx.fillStyle = vig;
+    fxCtx.fillRect(0, 0, w, h);
+
+    const grainCount = Math.floor(intensity * 140);
+    fxCtx.fillStyle = `rgba(255, 255, 255, ${intensity * 0.09})`;
+    for (let i = 0; i < grainCount; i++) {
+      const gx = Math.random() * w;
+      const gy = Math.random() * h;
+      fxCtx.fillRect(gx, gy, Math.random() * 3 + 1, 1.5);
+    }
+
+    if (p > 0.5 && Math.random() < 0.15) {
+      const tearY = Math.random() * h;
+      fxCtx.fillStyle = 'rgba(220, 38, 38, 0.14)';
+      fxCtx.fillRect(0, tearY, w, Math.random() * 8 + 2);
+    }
+  }
+
+  // ==================== 主渲染循环 ====================
+  function tick() {
+    state.frame++;
+    if (state.scrollProgress > 0.35 && state.scrollProgress < 0.8) {
+      drawRadar();
+    }
+    drawHorrorCorridor();
+    drawGlobalFX();
+    requestAnimationFrame(tick);
+  }
+
+  onScroll();
+  drawRadar();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
